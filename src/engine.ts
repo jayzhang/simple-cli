@@ -5,7 +5,7 @@ import { cloneDeep, pick } from "lodash";
 import { err, ok, Result } from "neverthrow";
 import { InvalidChoiceError, MissingRequiredArgumentError, MissingRequiredOptionError, UnknownArgumentError, UnknownCommandError, UnknownOptionError } from "./error";
 import { helper } from "./helper";
-import { Logger } from "./logger";
+import { ConsoleLogger, Logger } from "./logger";
 import {
   CLICommand,
   CLICommandArgument,
@@ -53,7 +53,7 @@ export class CLIEngine {
   logger: Logger;
 
 
-  constructor(logger: Logger) {
+  constructor(logger: Logger = new ConsoleLogger()) {
     this.logger = logger;
   }
 

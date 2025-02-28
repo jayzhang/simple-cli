@@ -28,7 +28,7 @@
     "typescript": "^5.7.3"
   },
   "dependencies": {
-    "chalk": "^5.4.1",
+    "chalk": "^4.1.2",
     "lodash": "^4.17.21",
     "neverthrow": "^8.2.0"
   }
