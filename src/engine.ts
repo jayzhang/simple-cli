@@ -46,10 +46,6 @@ function editDistance(s1: string, s2: string): number {
 }
 
 export class CLIEngine {
-  /**
-   * @description cached debug logsd
-   */
-  debugLogs: string[] = [];
 
   logger: Logger;
   helper: CLIHelper;
@@ -73,26 +69,17 @@ export class CLIEngine {
    * entry point of the CLI engine
    */
   async start(rootCmd: CLICommand ): Promise<Result<undefined, Error>> {
-    
-    this.debugLogs = [];
-
     const root = cloneDeep(rootCmd);
 
     // get user args
     const args = this.isBundledElectronApp() ? process.argv.slice(1) : process.argv.slice(2);
-    this.debugLogs.push(`user argument list: ${JSON.stringify(args)}`);
-
-    console.log(`user argument list: ${JSON.stringify(args)}`);
+    this.logger.debug(`user argument list: ${JSON.stringify(args)}`);
 
     // find command
     const findRes = this.findCommand(rootCmd, args);
     const foundCommand = findRes.cmd;
-
     const remainingArgs = findRes.remainingArgs;
-
-    this.debugLogs.push(`matched command: ${foundCommand.fullName}`);
-
-    console.log(`matched command: ${foundCommand.fullName}`);
+    this.logger.debug(`matched command: ${foundCommand.fullName}`);
 
     const context: CLIContext = {
       command: foundCommand,
@@ -102,27 +89,20 @@ export class CLIEngine {
       telemetryProperties: { },
     };
 
-  
     // parse args
     const parseRes = this.parseArgs(context, root, remainingArgs);
     if (parseRes.isErr()) {
-      console.log(`parse args error: ${parseRes.error.message}`);
       return err(parseRes.error);
     }
 
 
-        
-    console.log(
-      `parsed context: ${JSON.stringify(
-        pick(context, [
-          "optionValues",
-          "globalOptionValues",
-          "argumentValues",
-        ]),
-        null,
-        2
-      )}`
-    );
+    // validate
+    const validateRes = this.validateOptionsAndArguments(context.command);
+    if (validateRes.isErr()) {
+      return err(validateRes.error);
+    }
+
+    foundCommand.afterParseArgs?.(context);
 
     // version
     if (context.globalOptionValues.version === true) {
@@ -140,7 +120,6 @@ export class CLIEngine {
       return ok(undefined);
     }
 
-       
     this.logger.debug(
       `parsed context: ${JSON.stringify(
         pick(context, [
@@ -153,13 +132,6 @@ export class CLIEngine {
       )}`
     );
 
-    // validate
-    const validateRes = this.validateOptionsAndArguments(context.command);
-    if (validateRes.isErr()) {
-      return err(validateRes.error);
-    }
-
-    foundCommand.afterParseArgs?.(context);
 
     try {
       // run handler
@@ -330,7 +302,7 @@ export class CLIEngine {
             isGlobal: !isCommandOption,
           };
           if (option.value !== undefined) inputValues[inputKey] = option.value;
-          this.debugLogs.push(`find option: ${JSON.stringify(logObject)}`);
+          this.logger.debug(`find option: ${JSON.stringify(logObject)}`);
         } else {
           return err(new UnknownOptionError(command.fullName, token));
         }
@@ -363,7 +335,7 @@ export class CLIEngine {
           if (option.default !== undefined) {
             option.value = option.default;
             context.optionValues[this.optionInputKey(option)] = option.default;
-            this.debugLogs.push(
+            this.logger.debug(
               `set required option with default value, ${option.name}=${JSON.stringify(
                 option.default
               )}`
@@ -379,7 +351,7 @@ export class CLIEngine {
           if (argument.default !== undefined) {
             argument.value = argument.default;
             context.argumentValues[i] = argument.default as string;
-            this.debugLogs.push(
+            this.logger.debug(
               `set required argument with default value, ${argument.name}=${JSON.stringify(
                 argument.default
               )}`
