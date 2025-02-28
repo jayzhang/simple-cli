@@ -1,0 +1,35 @@
+{
+  "name": "simple-cli",
+  "version": "1.0.0",
+  "description": "A simple command line engine.",
+  "main": "index.js",
+  "scripts": {
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jayzhang/simple-cli.git"
+  },
+  "keywords": [
+    "command",
+    "line",
+    "cli",
+    "engine"
+  ],
+  "author": "Huajie Zhang",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/jayzhang/simple-cli/issues"
+  },
+  "homepage": "https://github.com/jayzhang/simple-cli#readme",
+  "devDependencies": {
+    "@types/lodash": "^4.17.15",
+    "@types/node": "^22.13.5",
+    "typescript": "^5.7.3"
+  },
+  "dependencies": {
+    "chalk": "^5.4.1",
+    "lodash": "^4.17.21",
+    "neverthrow": "^8.2.0"
+  }
+}
