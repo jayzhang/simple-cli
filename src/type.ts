@@ -85,7 +85,7 @@ export interface CLICommand {
   /**
    * @description command handler
    */
-  execute?: (ctx: CLIContext) => Promise<Result<boolean, Error>> | Result<boolean, Error>;
+  execute?: (ctx: CLIContext) => Promise<Result<undefined, Error>> | Result<undefined, Error>;
 }
 
 export interface CLIFoundCommand extends CLICommand {
@@ -220,4 +220,7 @@ export interface CLIExample {
    * @description description of the sample command
    */
   description: string;
+}
+export interface CLIHelper {
+  formatHelp(command: CLICommand, rootCommand?: CLICommand): string;
 }

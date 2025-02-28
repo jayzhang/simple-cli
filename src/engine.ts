@@ -4,7 +4,7 @@
 import { cloneDeep, pick } from "lodash";
 import { err, ok, Result } from "neverthrow";
 import { InvalidChoiceError, MissingRequiredArgumentError, MissingRequiredOptionError, UnknownArgumentError, UnknownCommandError, UnknownOptionError } from "./error";
-import { helper } from "./helper";
+import { DefaultHelper } from "./helper";
 import { ConsoleLogger, Logger } from "./logger";
 import {
   CLICommand,
@@ -12,6 +12,7 @@ import {
   CLICommandOption,
   CLIContext,
   CLIFoundCommand,
+  CLIHelper,
 } from "./type";
 
 function editDistance(s1: string, s2: string): number {
@@ -51,10 +52,12 @@ export class CLIEngine {
   debugLogs: string[] = [];
 
   logger: Logger;
+  helper: CLIHelper;
 
 
-  constructor(logger: Logger = new ConsoleLogger()) {
+  constructor(logger: Logger = new ConsoleLogger(), helper: CLIHelper = new DefaultHelper()) {
     this.logger = logger;
+    this.helper = helper;
   }
 
   /**
@@ -69,7 +72,7 @@ export class CLIEngine {
   /**
    * entry point of the CLI engine
    */
-  async start(rootCmd: CLICommand): Promise<Result<undefined, Error>> {
+  async start(rootCmd: CLICommand ): Promise<Result<undefined, Error>> {
     
     this.debugLogs = [];
 
@@ -79,12 +82,17 @@ export class CLIEngine {
     const args = this.isBundledElectronApp() ? process.argv.slice(1) : process.argv.slice(2);
     this.debugLogs.push(`user argument list: ${JSON.stringify(args)}`);
 
+    console.log(`user argument list: ${JSON.stringify(args)}`);
+
     // find command
     const findRes = this.findCommand(rootCmd, args);
     const foundCommand = findRes.cmd;
+
     const remainingArgs = findRes.remainingArgs;
 
     this.debugLogs.push(`matched command: ${foundCommand.fullName}`);
+
+    console.log(`matched command: ${foundCommand.fullName}`);
 
     const context: CLIContext = {
       command: foundCommand,
@@ -98,8 +106,23 @@ export class CLIEngine {
     // parse args
     const parseRes = this.parseArgs(context, root, remainingArgs);
     if (parseRes.isErr()) {
+      console.log(`parse args error: ${parseRes.error.message}`);
       return err(parseRes.error);
     }
+
+
+        
+    console.log(
+      `parsed context: ${JSON.stringify(
+        pick(context, [
+          "optionValues",
+          "globalOptionValues",
+          "argumentValues",
+        ]),
+        null,
+        2
+      )}`
+    );
 
     // version
     if (context.globalOptionValues.version === true) {
@@ -109,7 +132,7 @@ export class CLIEngine {
 
     // help
     if (context.globalOptionValues.help === true) {
-      const helpText = helper.formatHelp(
+      const helpText = this.helper.formatHelp(
         context.command,
         context.command.fullName !== root.fullName ? root : undefined
       );
@@ -146,7 +169,7 @@ export class CLIEngine {
           return err(handleRes.error);
         }
       } else {
-        const helpText = helper.formatHelp(context.command, root);
+        const helpText = this.helper.formatHelp(context.command, root);
         this.logger.info(helpText);
       }
     } catch (e) {
@@ -297,8 +320,7 @@ export class CLIEngine {
           }
           const isCommandOption =
             command.options?.includes(option) &&
-            command.fullName !== "teamsfx" &&
-            command.fullName !== "teamsapp";
+            command.fullName !== rootCommand.fullName;
           const inputValues = isCommandOption ? context.optionValues : context.globalOptionValues;
           const inputKey = this.optionInputKey(option);
           const logObject = {

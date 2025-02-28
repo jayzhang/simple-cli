@@ -6,11 +6,12 @@ import {
   CLICommand,
   CLICommandOption,
   CLIExample,
+  CLIHelper,
 } from "./type";
 import chalk from "chalk";
 import { cloneDeep } from "lodash";
 
-class Helper {
+export class DefaultHelper implements CLIHelper {
   itemIndentWidth = 2;
   itemSeparatorWidth = 2; // between term and description
   displayRequired = true;
@@ -19,7 +20,7 @@ class Helper {
   termWidth = 0;
   helpWidth = process.stdout.isTTY ? process.stdout.columns : 80;
 
-  formatOptionName(option: CLICommandOption, withRequired = true, insertIndent = false) {
+  private formatOptionName(option: CLICommandOption, withRequired = true, insertIndent = false) {
     let flags = `--${option.name}`;
     if (option.shortName) flags += ` -${option.shortName}`;
     if (this.displayRequired && withRequired && option.required && option.default === undefined) {
@@ -29,14 +30,14 @@ class Helper {
     }
     return flags;
   }
-  formatArgumentName(argument: CLICommandArgument) {
+  private formatArgumentName(argument: CLICommandArgument) {
     if (argument.required) {
       return `<${argument.name}>`;
     } else {
       return `[${argument.name}]`;
     }
   }
-  formatSubCommandName(command: CLICommand) {
+  private formatSubCommandName(command: CLICommand) {
     const items: string[] = [command.name];
     if (command.options) {
       items.push("[options]");
@@ -48,10 +49,10 @@ class Helper {
     }
     return items.join(" ");
   }
-  formatExample(example: CLIExample) {
+  private formatExample(example: CLIExample) {
     return `  ${example.description}.\n    ${chalk.bold(example.command)}\n`;
   }
-  formatCommandName(command: CLICommand) {
+  private formatCommandName(command: CLICommand) {
     const items: string[] = [command.fullName || command.name];
     if (command.options) {
       items.push("[options]");
@@ -63,7 +64,7 @@ class Helper {
     }
     return items.join(" ");
   }
-  computePadWidth(command: CLICommand, rootCommand?: CLICommand) {
+  private computePadWidth(command: CLICommand, rootCommand?: CLICommand) {
     const names: string[] = [];
 
     command.options?.forEach((o) => {
@@ -88,7 +89,7 @@ class Helper {
 
     return Math.max(...names.map((n) => n.length));
   }
-  prettifyReturnLine(text: string, width: number, indent: number, minWidth = 40) {
+  private prettifyReturnLine(text: string, width: number, indent: number, minWidth = 40) {
     const indentChars = " \\f\\t\\v\u00a0\u1680\u2000-\u200a\u202f\u205f\u3000\ufeff";
     const manualIndentRegex = new RegExp(`[\\n][${indentChars}]+`);
     if (text.match(manualIndentRegex)) return text;
@@ -112,7 +113,7 @@ class Helper {
         .join("\n");
     return res;
   }
-  formatItem(term: string, description: string) {
+  private formatItem(term: string, description: string) {
     if (description) {
       const fullText = `${term.padEnd(this.termWidth + this.itemSeparatorWidth)}${description}`;
       const res = this.prettifyReturnLine(
@@ -124,21 +125,21 @@ class Helper {
     }
     return term;
   }
-  formatList(textArray: string[]) {
+  private formatList(textArray: string[]) {
     return textArray.join("\n").replace(/^/gm, " ".repeat(this.itemIndentWidth));
   }
 
-  formatCommandUsage(command: CLICommand) {
+  private formatCommandUsage(command: CLICommand) {
     return `Usage: ${this.formatCommandName(command)}`;
   }
-  formatAllowedValue(choices: string[] | boolean[]) {
+  private formatAllowedValue(choices: string[] | boolean[]) {
     const maxLength = Math.min(choices.length, this.maxChoicesToDisplay);
     const list = choices.slice(0, maxLength);
     return `Allowed value: [${list.map((i) => JSON.stringify(i)).join(", ")}${
       list.length < choices.length ? ", etc." : ""
     }].`;
   }
-  formatArgumentDescription(argument: CLICommandArgument) {
+  private formatArgumentDescription(argument: CLICommandArgument) {
     const sentences = [argument.description];
     if ((argument.type === "string" || argument.type === "array") && argument.choices) {
       sentences.push(this.formatAllowedValue(argument.choices));
@@ -151,7 +152,7 @@ class Helper {
     }
     return sentences.join(" ");
   }
-  formatOptionDescription(option: CLICommandOption) {
+  private formatOptionDescription(option: CLICommandOption) {
     const sentences = [option.description];
     if ((option.type === "string" || option.type === "array") && option.choices) {
       sentences.push(this.formatAllowedValue(option.choices));
@@ -181,7 +182,7 @@ class Helper {
     const commandDescription = command.description;
     if (commandDescription.length > 0) {
       output = output.concat([
-        helper.prettifyReturnLine(commandDescription, this.helpWidth, 0),
+        this.prettifyReturnLine(commandDescription, this.helpWidth, 0),
         "",
       ]);
     }
@@ -250,8 +251,6 @@ class Helper {
     return output.join("\n");
   }
 }
-
-export const helper = new Helper();
 
 export function compareOptions(a: CLICommandOption, b: CLICommandOption): number {
   const sortKey = (option: CLICommandOption) => {
